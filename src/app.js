@@ -25,7 +25,7 @@ var lineastram = function(data){
     }}
     
     //¿Es valida, segun la direccion de la linea?
-    if((sentidoLinea == "AvdaAcademia" && poste%2 === 0) || (sentidoLinea == "MagoDeOz" && poste%2 == 1)) {
+    if((sentidoLinea == "Avda Academia" && poste%2 === 0) || (sentidoLinea == "Mago De Oz" && poste%2 == 1)) {
         items.push({title:parada,subtitle:poste,data:proximosTranvias});
         console.log("El array introducido es de " + proximosTranvias.length);
     }
@@ -34,7 +34,52 @@ var lineastram = function(data){
   
   // Devuelve las lineas ordenadas en un array.
   return items;
+};    
+
+// Función que ordena el array de tranvías
+
+var ordenarParadas = function(array,orden) {
+    var posicion;
+    var j = 0;
+    var poste = 0;
+    var actual = [];
+    var i;
+    if (orden == "a") { // Ordenar de manera ascendente (1 es el primero, 25 el último)
+        while (j < array.length-1) { //Mientras J sea menor que el ArrayLength, queda recorrido por hacer.
+            for (i = (array.length-1 -j); i >= 0; i--) { // Un recorrido completo para quedarse con el mas pesado de todos.
+                if(poste < Number(array[i].subtitle)) {
+                    poste = Number(array[i].subtitle); // en Poste, el número de poste que se ha quedado
+                    posicion = i; //en posición, la posición del Array.
+                }
+            }
+            //Se ha llegado al final completo. Sustituir el de posicion por el ultimo...
+            actual = array[posicion];
+            array[posicion] = array[(array.length-1) - j]; //Ha de tratar el último... sin tocar los ya tocados. J.
+            array[(array.length-1) - j] = actual;
+            j++;
+            poste = 0;
+        }
+    }
+    if (orden == "d") { // Ordenar de manera descendente (25 es el primero, 1 el último)
+        poste = 9999;
+        while (j < array.length-1) { //Mientras J sea menor que el ArrayLength, queda recorrido por hacer.
+            for (i = (array.length-1)-j; i >= 0; i--) { // Un recorrido completo para quedarse con el mas ligero de todos.
+                if(poste > Number(array[i].subtitle)) {
+                    poste = Number(array[i].subtitle); // en Poste, el número de poste que se ha quedado
+                    posicion = i; //en posición, la posición del Array.
+                }
+            }
+            //Se ha llegado al final completo. Sustituir el de posicion por el ultimo...
+            actual = array[posicion];
+            array[posicion] = array[(array.length - 1) - j];
+            array[(array.length - 1) - j] = actual;
+            j++;
+            poste = 9999;
+        }
+    }
+    return array;
 };
+
 
 /* ================================================
 ======       EMPIEZA EL PROGRAMA EN SI       ======
@@ -42,8 +87,8 @@ var lineastram = function(data){
 // ¿En que sentido va a coger el tranvía?
 
 var direcciones = [
-  {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "MagoDeOz"},
-  {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "AvdaAcademia"}];
+  {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz"},
+  {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "Avda Academia"}];
 
 var menuInicio = new UI.Menu({
   sections: [{
@@ -58,7 +103,7 @@ menuInicio.show();
 menuInicio.on('select', function(event) {
     
     // SI SELECCIONA LINEA 1 DE TRANVÍA
-    if (direcciones[event.itemIndex].data == "MagoDeOz" || direcciones[event.itemIndex].data == "AvdaAcademia") {
+    if (direcciones[event.itemIndex].data == "Mago De Oz" || direcciones[event.itemIndex].data == "Avda Academia") {
         sentidoLinea = direcciones[event.itemIndex].data; // en SentidoLinea está la dirección guardada. Ahora, hay que filtrar.
         
         // Muestra una ventana de carga mientras espera a que carguen los datos.
@@ -93,10 +138,17 @@ menuInicio.on('select', function(event) {
           function(data) {
             // Crear un array con las lineas de autobús
             var menuItems = lineastram(data);
+            // Hay que ordenar las líneas  
+            if (sentidoLinea == "Mago De Oz") {
+                console.log("Ordenando de manera ascendente (Mago De Oz)");
+                menuItems = ordenarParadas(menuItems,"a");
+            }
+            if (sentidoLinea == "Avda Academia") {
+                console.log("Ordenando de manera descendente (Avda Academia)");
+                menuItems = ordenarParadas(menuItems,"d");
+            }
+            
             // Comprobar que se han obtenido de manera correcta
-            for(var i = 0; i < menuItems.length; i++) {
-              console.log(menuItems[i].title);
-          }
               // Se muestra las opciones de bus
           var menuTram = new UI.Menu({
           sections: [{
@@ -111,19 +163,20 @@ menuInicio.on('select', function(event) {
         //Mostradas las paradas... ¿Y si ahora pulso? Información de la parada.
               
         menuTram.on('select', function(event) {
-            var info = "Proximo tranvia en ";
+            var info = " Proximo tranvia en: \n ";
             console.log("Numero de elementos que hay: " + menuItems[event.itemIndex].data.length);
             if (menuItems[event.itemIndex].data.length > 0) {
                 for(var j = 0; j < menuItems[event.itemIndex].data.length; j++) {
-                    info = info + menuItems[event.itemIndex].data[j] + "m, ";                   
+                    info = info + menuItems[event.itemIndex].data[j] + "m,  ";                   
                 }
             } else {
                 info = "No hay tranvias.";
             }
         var detailCard = new UI.Card({
             title: menuItems[event.itemIndex].title,
-            subtitle: "Parada " + menuItems[event.itemIndex].subtitle,
-            body: info
+            subtitle: "Dir. " + sentidoLinea,
+            body: info + " \n \n Parada " + menuItems[event.itemIndex].subtitle,
+            style: "small",
               });        
             detailCard.show();
             
