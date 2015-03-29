@@ -166,13 +166,10 @@ var ordenarParadas = function(array,orden) {
             console.log("Ha encontrado un link");
             //Si existe link, es que existe esa parada.
             var link = array.result[i].link;
-            console.log(link);
             console.log("Posicion del = en " + link.indexOf('=') + ", posicion del & en " + link.indexOf('&'));
             var poste = link.substring(link.indexOf('=')+1,link.indexOf('&'));
-            console.log(poste);
             var parada = link.substring(link.lastIndexOf("=")+1,link.length);
             console.log("Parada: " + parada + ", poste: " + poste);
-            console.log(parada);
             returnArray.push({title:parada,subtitle:poste,geometry:array.result[i].geometry});
         }
     }
@@ -186,12 +183,13 @@ var ordenarParadas = function(array,orden) {
 // ¿En que sentido va a coger el tranvía?
 
 var direccionesTranvia = [
-  {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz"},
-  {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "Avda Academia"}];
+    {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz"},
+    {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "Avda Academia"}];
 
 var direccionesBuses = [
-  {title:"Por línea", data: "LineaBus"},
-    {title:"Por cercanía (150m)", subtitle: "Funcion no operativa por el momento", data: "CercaniaBus"}];
+    {title:"Por línea", data: "LineaBus"},
+    //{title:"Por cercanía (150m)", subtitle: "Funcion no operativa por el momento", data: "CercaniaBus"}
+];
 
 var menuInicio = new UI.Menu({
   sections: [{
