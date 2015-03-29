@@ -353,7 +353,48 @@ menuInicio.on('select', function(event) {
                       }]
                     });
                     menuLinea.show();
-                    //SEGUIR!
+                    
+                    // Linea seleccionada. Ahora, si se pulsa... se selecciona parada!
+                    menuLinea.on('select', function(event3) {
+                        var poste = dataLinea[event3.itemIndex].subtitle;
+                        var URLPoste = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/poste/tuzsa-' + poste + '.json';
+                        console.log("URL del Poste: " + URLPoste);
+                        ajax({url:URLPoste,type:'json'},function(dataPoste){
+                            // Analizando el json de poste... hay que modificar el título.
+                            console.log("Detecta lo de Línea en " + dataPoste.title.search("Línea"));
+                            poste = dataPoste.title.slice(dataPoste.title.indexOf("(")+1,dataPoste.title.indexOf(")"));
+                            console.log("Poste: " + poste);
+                            dataPoste.title = dataPoste.title.slice(dataPoste.title.indexOf(")")+1,dataPoste.title.search("Línea"));
+                            console.log("Nuevo título:" + dataPoste.title);
+                            var posteCard = new UI.Card({title: dataPoste.title.toString(), subtitle: poste, scrollable: true, style: "small"});
+                            // Creada la tarjeta, con título nombre de la parada y subtítulo, numero de poste.
+                            // Ahora, a meter la información...
+                            var body = ""; // Cadena vacía por seguridad.
+                            if(dataPoste.destinos){
+                                console.log("Ha detectado destinos");
+                                // Hay buses aún pendientes.
+                                for(var n=0; n<dataPoste.destinos.length; n++){
+                                    // Primero se presenta la linea.
+                                    console.log("Entra a comprobar destinos");
+                                    body = body + "Línea " + dataPoste.destinos[n].linea + ", Dirección " + dataPoste.destinos[n].destino;
+                                    // Despues, el primer bus.
+                                    body = body + "\n - " + dataPoste.destinos[n].primero + '\n';
+                                    // Si hay un segundo bus, se muestra.
+                                    if(dataPoste.destinos[n].segundo){
+                                        body = body + " - " + dataPoste.destinos[n].segundo + '\n';
+                                    }
+                                    
+                                }
+                            }else{
+                                // Ya no queda ningún por pasar.
+                                body = "No hay más buses en esta parada.";
+                            }
+                            // Una vez metidos todos los datos, mostramos la tarjeta,
+                            console.log("Mensaje: " + body);
+                            posteCard.body(body);
+                            posteCard.show();
+                        });
+                    });
                 });
              });             
         },

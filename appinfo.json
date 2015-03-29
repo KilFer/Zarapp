@@ -39,7 +39,7 @@
     "shortName": "Zarapp",
     "uuid": "66c2fedf-3ee3-4c3d-bd2e-8ac20727954d",
     "versionCode": 1,
-    "versionLabel": "0.82",
+    "versionLabel": "0.84",
     "watchapp": {
         "watchface": false
     }
