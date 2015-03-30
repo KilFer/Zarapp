@@ -29,6 +29,31 @@
                 "type": "font"
             },
             {
+                "file": "images/UpDownArrow.png",
+                "name": "IMAGES_UPDOWNARROW_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/ClockArrow.png",
+                "name": "IMAGES_CLOCKARROW_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/tram.png",
+                "name": "IMAGES_TRAM_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/AntiClockArrow.png",
+                "name": "IMAGES_ANTICLOCKARROW_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/bus.png",
+                "name": "IMAGES_BUS_PNG",
+                "type": "png"
+            },
+            {
                 "file": "images/Zarapp.png",
                 "menuIcon": true,
                 "name": "IMAGES_ZARAPP_PNG",

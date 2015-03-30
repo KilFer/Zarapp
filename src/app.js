@@ -68,7 +68,8 @@ var ordenarLineas = function(array){
         for(var i=0; i<array.length; i++){
             if(array[i].title.indexOf("CI")!=-1){
                 // Detectado un Circular. Pasarlo al array.
-                newArray.push({title:array[i].title.toString()});
+                if(array[i].title.toString()=="CI1"){newArray.push({title:array[i].title.toString(),icon:"images/ClockArrow.png"});}
+                if(array[i].title.toString()=="CI2"){newArray.push({title:array[i].title.toString(),icon:"images/AntiClockArrow.png"});}
             }
         }
         // Ahora, los numericos. EN ORDEN.
@@ -89,14 +90,14 @@ var ordenarLineas = function(array){
             if(actualPeque!=999){
                 //Hay uno nuevo para añadir.
                 anteriorPeque = actualPeque;
-                newArray.push({title:actualPeque.toString()});
+                newArray.push({title:actualPeque.toString(),icon:"images/UpDownArrow.png"});
             }
         }while(actualPeque!=999);
         // Ordenados los numericos. Ahora, las lanzaderas...
         for(i=0; i<array.length; i++){
             if(array[i].title.indexOf("C")!=-1 && array[i].title.length == 2){
                 // Detectado una Lanzadera. Pasarla al array.
-                newArray.push({title:array[i].title.toString()});
+                newArray.push({title:array[i].title.toString(),icon:"images/UpDownArrow.png"});
             }
         }
     } else {
@@ -157,25 +158,28 @@ var ordenarParadas = function(array,orden) {
     return array;
 };
 
-// Funcion que coge la información util del Array de linea de bus
- var ordenarParadasBus = function(array){
+// Funcion que coge la información util del Array de linea de bus. OJO: USO EL METODO DE DNDZGZ Y NO EL DEL AYTO. Filtrar.
+ var obtenerParadasBus = function(array,linea){
     var returnArray = [];
     console.log("Llega a Ordenar paradas.");
-    for(var i = 0; i < array.totalCount; i++){
-        if(array.result[i].link){
-            console.log("Ha encontrado un link");
-            //Si existe link, es que existe esa parada.
-            var link = array.result[i].link;
-            console.log("Posicion del = en " + link.indexOf('=') + ", posicion del & en " + link.indexOf('&'));
-            var poste = link.substring(link.indexOf('=')+1,link.indexOf('&'));
-            var parada = link.substring(link.lastIndexOf("=")+1,link.length);
-            console.log("Parada: " + parada + ", poste: " + poste);
-            returnArray.push({title:parada,subtitle:poste,geometry:array.result[i].geometry});
+    for(var i = 0; i < array.length; i++){
+        if(array[i].lines){
+            console.log("Ha encontrado lineas en este poste.");
+            for(var j = 0; j < array[i].lines.length; j++){
+                console.log("Linea " + array[i].lines[j]);
+                if(array[i].lines[j] == linea){
+                    //La linea que se busca es la que se ha encontrado!
+                    var poste = array[i].id;
+                    var parada = array[i].title;
+                    console.log("Parada: " + parada + ", poste: " + poste);
+                    returnArray.push({title:parada,subtitle:poste,lat:array[i].lat,lon:array[i].lon});
+                }
+            }
         }
     }
+     
     return returnArray;
  };
-
 
 /* ================================================
 ======       EMPIEZA EL PROGRAMA EN SI       ======
@@ -183,11 +187,11 @@ var ordenarParadas = function(array,orden) {
 // ¿En que sentido va a coger el tranvía?
 
 var direccionesTranvia = [
-    {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz"},
-    {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "Avda Academia"}];
+    {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz", icon:"images/tram.png"},
+    {title:"Hacia Avda Academia",subtitle:"Linea 1", data: "Avda Academia", icon:"images/tram.png"}];
 
 var direccionesBuses = [
-    {title:"Por línea", data: "LineaBus"},
+    {title:"Por línea", data: "LineaBus", icon:"images/bus.png"},
     //{title:"Por cercanía (150m)", subtitle: "Funcion no operativa por el momento", data: "CercaniaBus"}
 ];
 
@@ -340,15 +344,18 @@ menuInicio.on('select', function(event) {
             menuBus.on('select', function(event2) {
                 var linea = menuItems[event2.itemIndex].title;
                 console.log("Valor de Linea: " + linea);
-                var URL3 = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/linea/' + linea + '.json';
+                var URL3 = 'http://www.dndzgz.com/fetch?service=bus';
                 console.log("La URL del JSON es " + URL3);
                 ajax({url:URL3,type:'json'},function(dataLinea){
-                    //En dataLinea hay mucha información inútil. Sacar la información útil.
+                    //En dataLinea estan TODAS LAS PARADAS. Sacar las paradas convenientes.
                     console.log("Entra en el Ajax");
-                    dataLinea = ordenarParadasBus(dataLinea);
+                    dataLinea = obtenerParadasBus(dataLinea,linea);
+                    
+                    // Y hay que ordenarlas. Orden por numero de poste...
+                    dataLinea = ordenarParadas(dataLinea,"a");
                     var menuLinea = new UI.Menu({
                       sections: [{
-                        title: 'Paradas de bus',
+                        title: 'Línea ' + linea,
                         items: dataLinea
                       }]
                     });
