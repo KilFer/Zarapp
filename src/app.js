@@ -1,4 +1,4 @@
-// Version 0.8
+// Version 0.89
 
 var UI = require('ui');
 var ajax = require('ajax');
@@ -8,32 +8,30 @@ var sentidoLinea;
 // Función que obtiene las lineas de autobús
 
 var lineastram = function(data){
-  var items = [];
-  console.log("Ha llegado hasta aqui");
-  for(var i = 0; i < data.totalCount; i++){
-    var linea = data.result[i];
-    var poste = linea.id;
-    console.log("Saca el ID de Result. Linea:" + linea);
-    var parada = linea.title;
-    console.log("Parada:" + parada);
-    var proximosTranvias = [];
-    // Siguen circulando los tranvias? Entonces hay destinos...
-    if(linea.destinos){
-    for (var j = 0; j < linea.destinos.length; j++){
-        proximosTranvias.push(linea.destinos[j].minutos);
-        console.log("Siguiente tranvia en: " + proximosTranvias + "m");
-    }}
-    
-    //¿Es valida, segun la direccion de la linea?
-    if((sentidoLinea == "Avda Academia" && poste%2 === 0) || (sentidoLinea == "Mago De Oz" && poste%2 == 1)) {
-        items.push({title:parada,subtitle:poste,data:proximosTranvias});
-        console.log("El array introducido es de " + proximosTranvias.length);
+    var items = [];
+    console.log("Ha llegado hasta aqui");
+    for(var i = 0; i < data.totalCount; i++){
+        var linea = data.result[i];
+        var poste = linea.id;
+        console.log("Saca el ID de Result. Linea:" + linea);
+        var parada = linea.title;
+        console.log("Parada:" + parada);
+        var proximosTranvias = [];
+        // Siguen circulando los tranvias? Entonces hay destinos...
+        if(linea.destinos){
+            for (var j = 0; j < linea.destinos.length; j++){
+            proximosTranvias.push(linea.destinos[j].minutos);
+            console.log("Siguiente tranvia en: " + proximosTranvias + "m");
+            }
+        }     
+        //¿Es valida, segun la direccion de la linea?
+        if((sentidoLinea == "Avda Academia" && poste%2 === 0) || (sentidoLinea == "Mago De Oz" && poste%2 == 1)) {
+            items.push({title:parada,subtitle:poste,data:proximosTranvias});
+            console.log("El array introducido es de " + proximosTranvias.length);
+        }
     }
-        
-  }
-  
-  // Devuelve las lineas ordenadas en un array.
-  return items;
+    // Devuelve las lineas ordenadas en un array.
+    return items;
 };    
 
 var lineasbus = function(data){
@@ -164,14 +162,14 @@ var ordenarParadas = function(array,orden) {
     console.log("Llega a Ordenar paradas.");
     for(var i = 0; i < array.length; i++){
         if(array[i].lines){
-            console.log("Ha encontrado lineas en este poste.");
+            //console.log("Ha encontrado lineas en este poste.");
             for(var j = 0; j < array[i].lines.length; j++){
-                console.log("Linea " + array[i].lines[j]);
+                //console.log("Linea " + array[i].lines[j]);
                 if(array[i].lines[j] == linea){
                     //La linea que se busca es la que se ha encontrado!
                     var poste = array[i].id;
                     var parada = array[i].title;
-                    console.log("Parada: " + parada + ", poste: " + poste);
+                    //console.log("Parada: " + parada + ", poste: " + poste);
                     returnArray.push({title:parada,subtitle:poste,lat:array[i].lat,lon:array[i].lon});
                 }
             }
@@ -181,10 +179,231 @@ var ordenarParadas = function(array,orden) {
     return returnArray;
  };
 
+var showInfoBus = function(dataPoste) {
+    // Analizando el json de poste... hay que modificar el título.
+    console.log("Detecta lo de Línea en " + dataPoste.title.search("Línea"));
+    var poste = dataPoste.title.slice(dataPoste.title.indexOf("(")+1,dataPoste.title.indexOf(")"));
+    console.log("Poste: " + poste);
+    dataPoste.title = dataPoste.title.slice(dataPoste.title.indexOf(")")+1,dataPoste.title.search("Línea"));
+    console.log("Nuevo título:" + dataPoste.title);
+    var posteCard = new UI.Card({title: dataPoste.title.toString(), subtitle: poste, scrollable: true, style: "small"});
+    // Creada la tarjeta, con título nombre de la parada y subtítulo, numero de poste.
+    // Ahora, a meter la información...
+    var body = ""; // Cadena vacía por seguridad.
+    if(dataPoste.destinos){
+        console.log("Ha detectado destinos");
+        // Hay buses aún pendientes.
+        for(var n=0; n<dataPoste.destinos.length; n++){
+            // Primero se presenta la linea.
+            console.log("Entra a comprobar destinos");
+            body = body + "Línea " + dataPoste.destinos[n].linea + ", Dirección " + dataPoste.destinos[n].destino;
+            // Despues, el primer bus.
+            body = body + "\n - " + dataPoste.destinos[n].primero + '\n';
+            // Si hay un segundo bus, se muestra.
+            if(dataPoste.destinos[n].segundo){
+                body = body + " - " + dataPoste.destinos[n].segundo + '\n';
+            }                      
+        }
+    }else{
+        // Ya no queda ningún por pasar.
+        body = "No hay más buses en esta parada.";
+    }
+    // Una vez metidos todos los datos, mostramos la tarjeta,
+    console.log("Mensaje: " + body);
+    posteCard.body(body);
+    return posteCard;
+};
+
+var showInfoTram = function(data,dir){
+    console.log("Saca el ID de Result. Linea:" + data.id);
+    console.log("Parada:" + data.title);
+    var proximosTranvias = [];
+    // Siguen circulando los tranvias? Entonces hay destinos...
+    if(data.destinos){
+        for (var j = 0; j < data.destinos.length; j++){
+            proximosTranvias.push(data.destinos[j].minutos);
+            console.log("Siguiente tranvia en: " + proximosTranvias[j] + "m");
+        }
+    }     
+    // Todo gestionado en el array. Ahora, a hacer aparecer en la ventana.
+    var info = " Proximo tranvia en: \n ";
+    if (proximosTranvias.length > 0) {
+        for(var i = 0; i < proximosTranvias.length; i++) {
+            info = info + proximosTranvias[i] + "m,  ";                   
+        }
+    } else {
+        info = "No hay tranvias.";
+    }
+    var detailCard = new UI.Card({
+        title: data.title,
+        subtitle: "Dir. " + dir,
+        body: info + " \n \n Parada " + data.id,
+        style: "small",
+    });
+    return detailCard;
+};
+
+var loadVentanaFav = function(){
+    console.log("Entra en loadVentanaFav");
+    var ventana = new UI.Card({
+        action: {
+            up: 'images/Tick.png',
+            down: 'images/x.png'
+        },
+        body: "¿Deseas guardar esta parada como favorita?"
+    });
+    return ventana;
+};
+
+var loadDeleteFav = function(){
+    console.log("Entra en loadDeleteFav");
+    var ventana = new UI.Card({
+        action: {
+            up: 'images/Tick.png',
+            down: 'images/x.png'
+        },
+        body: "¿Deseas eliminar esta parada como favorita?"
+    });
+    return ventana;
+};
+
+var newBusFav = function(poste,title){
+    var favBus = localStorage.getItem("storedFavBus");
+    console.log("Creando nuevo favorito.");
+    if(!favBus){
+        favBus = [];
+    } else {
+        favBus = JSON.parse(favBus);
+    }
+    //Hay que comprobar que la parada no exista ya.
+    var existe = false;
+    var i = 0;
+    while(i<favBus.length){
+        if(favBus[i].id == poste){
+            existe = true;
+        }
+        i++;
+    }
+    console.log("¿Existe ya la parada en el array?" + existe);
+    // Si no existe parada, hay que añadirla.
+    if(!existe){
+        console.log("Tamaño del array: " + favBus.length);
+        console.log("Nombre: " + title + "; id: " + poste);
+        favBus.push({nombre: title, id: poste});
+        console.log("Guardado en el array. Ahora es de tamaño " + favBus.length);
+        console.log("Nombre: " + favBus[favBus.length-1].nombre + "; ID: " + favBus[favBus.length-1].id);
+        localStorage.setItem("storedFavBus", JSON.stringify(favBus));
+        console.log("Teoricamente guardado. Compruebo.");
+        // COMPROBACION. ¿Lo ha hecho bien?
+        favBus = JSON.parse(localStorage.getItem("storedFavBus"));
+        console.log("Tamaño del array: " + favBus.length);
+        console.log("FUNCION TERMINADA");
+    }
+};
+
+var newTramFav = function(poste,title,direccion){
+    var favTram = localStorage.getItem("storedFavTram");
+    console.log("Creando nuevo favorito.");
+    if(!favTram){
+        favTram = [];
+    } else {
+        favTram = JSON.parse(favTram);
+    }
+    var existe = false;
+    var i = 0;
+    while(i<favTram.length){
+        if(favTram[i].id == poste){
+            existe = true;
+        }
+        i++;
+    }
+    console.log("¿Existe ya la parada en el array?" + existe);
+    if(!existe){
+        console.log("Tamaño del array: " + favTram.length);
+        console.log("Nombre: " + title + "; id: " + poste + "; direccion: " + direccion);
+        favTram.push({nombre: title, id: poste, dir: direccion});
+        console.log("Guardado en el array. Ahora es de tamaño " + favTram.length);
+        console.log("Nombre: " + favTram[favTram.length-1].nombre + "; ID: " + favTram[favTram.length-1].id + "; dir: " + direccion);
+        // TO-DO: QUE COMPRUEBE SI ESTA PARADA YA EXISTE.
+        localStorage.setItem("storedFavTram", JSON.stringify(favTram));
+        console.log("Teoricamente guardado. Compruebo.");
+        // COMPROBACION. ¿Lo ha hecho bien?
+        favTram = JSON.parse(localStorage.getItem("storedFavTram"));
+        console.log("Tamaño del array: " + favTram.length);
+        console.log("FUNCION TERMINADA");
+    }
+};
+
+var deleteTramFav = function(poste){
+    var favTram = localStorage.getItem("storedFavTram");
+    if(!favTram){
+        favTram = [];
+    } else {
+        favTram = JSON.parse(favTram);
+        var i = 0;
+        while(i<favTram.length){
+            if(favTram[i].id == poste){
+                //Ha encontrado el ID a quitar!
+                favTram.splice(i,1);
+                console.log("Elemento hallado y quitado");
+            }
+        i++;
+        }
+    }
+    localStorage.setItem("storedFavTram",JSON.stringify(favTram));
+};
+
+var deleteBusFav = function(poste){
+    var favBus = localStorage.getItem("storedFavBus");
+    if(!favBus){
+        favBus = [];
+    } else {
+        favBus = JSON.parse(favBus);
+        var i = 0;
+        while(i<favBus.length){
+            if(favBus[i].id == poste){
+                //Ha encontrado el ID a quitar!
+                favBus.splice(i,1);
+                console.log("Elemento hallado y quitado");
+            }
+        i++;
+        }
+    }
+    localStorage.setItem("storedFavBus",JSON.stringify(favBus));
+};
+
+var loadMenuFav = function(){
+    var favTram = JSON.parse(localStorage.getItem("storedFavTram"));
+    var favBus = JSON.parse(localStorage.getItem("storedFavBus"));
+    var menuFav = [];
+    var i;
+    if(favTram){ //Se ha inicializado al menos una vez. ¡Pasemos al menu!
+        for(i=0;i<favTram.length;i++){
+            console.log("cadena: " + favTram[i] + "; nombre: " + favTram[i].nombre + "; id: " + favTram[i].id + "; dir: "+ favTram[i].dir);
+            menuFav.push({title: favTram[i].nombre, subtitle: favTram[i].id, icon: "images/tram.png", direccion: favTram[i].dir});
+        }
+    }
+    if(favBus){ //Se ha inicializaco al menos una vez.
+        for(i=0;i<favBus.length;i++){
+            console.log("cadena: " + favBus[i]);
+            console.log("nombre: " + favBus[i].nombre);
+            console.log("id: " + favBus[i].id);
+            menuFav.push({title: favBus[i].nombre, subtitle: favBus[i].id, icon: "images/bus.png"});
+        }            
+    }
+    // Hasta aqui, ha cargado en menuFav todas las opciones favoritas. Pero, ¿Hay favoritos?
+    console.log("Numero de favoritos hasta este momento:" + menuFav.length);
+    return menuFav;
+};
+
 /* ================================================
 ======       EMPIEZA EL PROGRAMA EN SI       ======
 ================================================= */
 // ¿En que sentido va a coger el tranvía?
+
+var opcionesEspeciales = [
+    {title:"Favoritos", subtitle: "Tus paradas favoritas", icon: "images/Star.png"}
+];
 
 var direccionesTranvia = [
     {title:"Hacia Mago de Oz", subtitle:"Linea 1", data: "Mago De Oz", icon:"images/tram.png"},
@@ -196,14 +415,19 @@ var direccionesBuses = [
 ];
 
 var menuInicio = new UI.Menu({
-  sections: [{
-    title: 'Lineas de Tranvía',
-    items: direccionesTranvia,
-  },{
-      title: 'Urbanos de Zaragoza',
-      items: direccionesBuses,
-  }]
+    sections: [{
+        title: "Opciones",
+        items: opcionesEspeciales,
+    },{
+        title: 'Lineas de Tranvía',
+        items: direccionesTranvia,
+    },{
+        title: 'Urbanos de Zaragoza',
+        items: direccionesBuses,
+    }]
 });
+// localStorage.removeItem("storedFavBus");
+// localStorage.removeItem("storedFavTram");
 menuInicio.show();
 
 // Ha seleccionado una opción. ¿Que hacer?
@@ -211,7 +435,7 @@ menuInicio.show();
 menuInicio.on('select', function(event) {
     
     // SI SELECCIONA LINEA 1 DE TRANVÍA
-    if (event.sectionIndex === 0) {
+    if (event.sectionIndex === 1) {
         sentidoLinea = direccionesTranvia[event.itemIndex].data; // en SentidoLinea está la dirección guardada. Ahora, hay que filtrar.
         
         // Muestra una ventana de carga mientras espera a que carguen los datos.
@@ -287,7 +511,22 @@ menuInicio.on('select', function(event) {
             style: "small",
               });        
             detailCard.show();
-            
+            detailCard.on('longClick','select', function(e){
+                               // Ha pulsado el botón del centro. FAV. 
+                                var ventanaFav = loadVentanaFav();
+                                ventanaFav.show();
+                                ventanaFav.on('click','up', function(e2){
+                                    //Quiere guardar esta parada.
+                                    newTramFav(menuItems[event.itemIndex].subtitle,menuItems[event.itemIndex].title,sentidoLinea);
+                                    ventanaFav.hide();
+                                    ventanaFav.hide();
+                                });
+                                ventanaFav.on('click','down', function(e2){
+                                    //No quiere guardar esta parada.
+                                    ventanaFav.hide(); //para ocultar
+                                    ventanaFav.hide(); //para eliminar
+                                });
+                            });
                   
              });
         },
@@ -298,7 +537,7 @@ menuInicio.on('select', function(event) {
     }
     // HASTA AQUI, SI HA SELECCIONADO LINEAS DE TRANVIA.
     // SECCION 2 DEL ARRAY: BUSES
-    if (event.sectionIndex === 1) {
+    if (event.sectionIndex === 2) {
         //¿Se ha seleccionado por líneas?
         if (event.itemIndex === 0) {
             
@@ -367,39 +606,24 @@ menuInicio.on('select', function(event) {
                         var URLPoste = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/poste/tuzsa-' + poste + '.json';
                         console.log("URL del Poste: " + URLPoste);
                         ajax({url:URLPoste,type:'json'},function(dataPoste){
-                            // Analizando el json de poste... hay que modificar el título.
-                            console.log("Detecta lo de Línea en " + dataPoste.title.search("Línea"));
-                            poste = dataPoste.title.slice(dataPoste.title.indexOf("(")+1,dataPoste.title.indexOf(")"));
-                            console.log("Poste: " + poste);
-                            dataPoste.title = dataPoste.title.slice(dataPoste.title.indexOf(")")+1,dataPoste.title.search("Línea"));
-                            console.log("Nuevo título:" + dataPoste.title);
-                            var posteCard = new UI.Card({title: dataPoste.title.toString(), subtitle: poste, scrollable: true, style: "small"});
-                            // Creada la tarjeta, con título nombre de la parada y subtítulo, numero de poste.
-                            // Ahora, a meter la información...
-                            var body = ""; // Cadena vacía por seguridad.
-                            if(dataPoste.destinos){
-                                console.log("Ha detectado destinos");
-                                // Hay buses aún pendientes.
-                                for(var n=0; n<dataPoste.destinos.length; n++){
-                                    // Primero se presenta la linea.
-                                    console.log("Entra a comprobar destinos");
-                                    body = body + "Línea " + dataPoste.destinos[n].linea + ", Dirección " + dataPoste.destinos[n].destino;
-                                    // Despues, el primer bus.
-                                    body = body + "\n - " + dataPoste.destinos[n].primero + '\n';
-                                    // Si hay un segundo bus, se muestra.
-                                    if(dataPoste.destinos[n].segundo){
-                                        body = body + " - " + dataPoste.destinos[n].segundo + '\n';
-                                    }
-                                    
-                                }
-                            }else{
-                                // Ya no queda ningún por pasar.
-                                body = "No hay más buses en esta parada.";
-                            }
-                            // Una vez metidos todos los datos, mostramos la tarjeta,
-                            console.log("Mensaje: " + body);
-                            posteCard.body(body);
+                            var posteCard = showInfoBus(dataPoste);
                             posteCard.show();
+                            posteCard.on('longClick','select', function(e){
+                               // Ha pulsado el botón del centro. FAV. 
+                                var ventanaFav = loadVentanaFav();
+                                ventanaFav.show();
+                                ventanaFav.on('click','up', function(e2){
+                                    //Quiere guardar esta parada.
+                                    newBusFav(poste,dataLinea[event3.itemIndex].title);
+                                    ventanaFav.hide();
+                                    ventanaFav.hide();
+                                });
+                                ventanaFav.on('click','down', function(e2){
+                                    //No quiere guardar esta parada.
+                                    ventanaFav.hide(); //para ocultar
+                                    ventanaFav.hide(); //para eliminar
+                                });
+                            });
                         });
                     });
                 });
@@ -417,4 +641,99 @@ menuInicio.on('select', function(event) {
         }
     }
     // HASTA AQUI, SI SE HA SELECCIONADO DEL ARRAY DE BUSES.
+    // DESDE AQUI, SE HA SELECCIONADO FAVORITOS?
+    if (event.sectionIndex === 0){
+        var menuFav = loadMenuFav();
+        if(menuFav.length !== 0){
+            console.log("Hay algún favorito.");
+            var menuCard = new UI.Menu({sections:[{title:"Favoritos",items:menuFav}]});
+            menuCard.show();
+            menuCard.on('select', function(e2) {
+                if(menuFav[e2.itemIndex].icon=="images/bus.png"){
+                    //FAVORITO: BUS.
+                    console.log("Se ha pulsado en el favorito de un bus. Su ID es: " + menuFav[e2.itemIndex].subtitle );
+                    var URL = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/poste/tuzsa-' + menuFav[e2.itemIndex].subtitle + '.json';
+                    ajax({url:URL,type:'json'},function(dataPoste){
+                        var posteCard = showInfoBus(dataPoste);
+                        posteCard.show();
+                        posteCard.on('longClick','select', function(e3){
+                            var deleteCard = loadDeleteFav();
+                            deleteCard.show();
+                            deleteCard.on('click','up', function(e4){
+                                //Quiere borrar esta parada.
+                                console.log("Parada a borrar: " + menuFav[e2.itemIndex].subtitle);
+                                deleteBusFav(menuFav[e2.itemIndex].subtitle);
+                                deleteCard.hide();
+                                posteCard.hide();
+                                posteCard.hide();
+                                menuFav = loadMenuFav();
+                                if(menuFav.length !== 0){menuCard.items(0, menuFav);menuCard.show();}
+                                else {
+                                    menuCard.hide();menuCard.hide();
+                                    var noFavCard = new UI.Card({
+                                        title: "No tienes ningun favorito", 
+                                        body: "Agrega tu parada a favoritos manteniendo pulsado el botón central cuando estes viendo la información de ese poste o parada", 
+                                        scrollable: true, 
+                                        style: "small"
+                                    });
+                                    noFavCard.show();
+                                }
+                                deleteCard.hide();
+                            });
+                            deleteCard.on('click','down', function(e4){
+                                //No quiere borrar esta parada.
+                                deleteCard.hide(); //para ocultar
+                                deleteCard.hide(); //para eliminar
+                            });
+                        });
+                    });
+                }
+                else if(menuFav[e2.itemIndex].icon=="images/tram.png"){
+                    //FAVORITO: TRAM.
+                    console.log("Se ha pulsado en el favorito de un tranvia. Su ID es: " + menuFav[e2.itemIndex].subtitle );
+                    var URL2 = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/tranvia/' + menuFav[e2.itemIndex].subtitle + '.json';
+                    ajax({url:URL2,type:'json'},function(dataPoste){
+                        var posteCard = showInfoTram(dataPoste,menuFav[e2.itemIndex].direccion);
+                        posteCard.show();
+                        posteCard.on('longClick','select', function(e3){
+                            var deleteCard = loadDeleteFav();
+                            deleteCard.show();
+                            deleteCard.on('click','up', function(e4){
+                                //Quiere borrar esta parada.
+                                console.log("Parada a borrar: " + menuFav[e2.itemIndex].subtitle);
+                                deleteTramFav(menuFav[e2.itemIndex].subtitle);
+                                deleteCard.hide();
+                                posteCard.hide();
+                                posteCard.hide();
+                                menuFav = loadMenuFav();
+                                if(menuFav.length !== 0){menuCard.items(0, menuFav);menuCard.show();}
+                                else {
+                                    menuCard.hide();menuCard.hide();
+                                    var noFavCard = new UI.Card({
+                                        title: "No tienes ningun favorito", 
+                                        body: "Agrega tu parada a favoritos manteniendo pulsado el botón central cuando estes viendo la información de ese poste o parada", 
+                                        scrollable: true, 
+                                        style: "small"
+                                    });
+                                    noFavCard.show();
+                                }
+                                deleteCard.hide();
+                            });
+                            deleteCard.on('click','down', function(e4){
+                                //No quiere borrar esta parada.
+                                deleteCard.hide(); //para ocultar
+                                deleteCard.hide(); //para eliminar
+                            });
+                        });
+                    });
+                    
+                }
+            });
+        } else {
+            // NO HAY NINGUN FAVORITO GUARDADO.
+            var noFavCard = new UI.Card({title: "No tienes ningun favorito", body: "Agrega tu parada a favoritos manteniendo pulsado el botón central cuando estes viendo la información de ese poste o parada", scrollable: true, style: "small"});
+            noFavCard.show();
+        }
+    }
+    // HASTA AQUI, SI SE HA SELECCIONADO FAVORITOS.
 });

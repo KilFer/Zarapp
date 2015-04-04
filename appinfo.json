@@ -29,6 +29,21 @@
                 "type": "font"
             },
             {
+                "file": "images/x.png",
+                "name": "IMAGES_X_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/Tick.png",
+                "name": "IMAGES_TICK_PNG",
+                "type": "png"
+            },
+            {
+                "file": "images/Star.png",
+                "name": "IMAGES_STAR_PNG",
+                "type": "png"
+            },
+            {
                 "file": "images/UpDownArrow.png",
                 "name": "IMAGES_UPDOWNARROW_PNG",
                 "type": "png"
@@ -64,7 +79,7 @@
     "shortName": "Zarapp",
     "uuid": "66c2fedf-3ee3-4c3d-bd2e-8ac20727954d",
     "versionCode": 1,
-    "versionLabel": "0.84",
+    "versionLabel": "0.89",
     "watchapp": {
         "watchface": false
     }
