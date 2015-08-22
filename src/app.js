@@ -836,7 +836,7 @@ menuInicio.on('select', function(event) {
                     });
                     
                 }
-                else if(menuFav[e2.itemIndex].icon=="images/bizi.png"){
+                else if(menuFav[e2.itemIndex].icon=="images/bici.png"){
                     console.log("Se ha pulsado en el favorito de un tranvia. Su ID es: " + menuFav[e2.itemIndex].subtitle);
                     var URL3 = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/estacion-bicicleta/' + menuFav[e2.itemIndex].subtitle + '.json';
                     ajax({url:URL3,type:'json'},function(dataPoste){
