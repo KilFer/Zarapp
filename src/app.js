@@ -51,6 +51,22 @@ var lineasbus = function(data){
   return items;
 };
 
+var lineasbizi = function(data){
+    var items = [];
+    console.log("Comienza a analizar las lineas");
+    for(var i=0;i < data.totalCount; i++){
+        var parada = data.result[i];
+        var id = parada.id;
+        console.log("Parada encontrada: n" + id);
+        var dir = parada.title;
+        var state = parada.estado;
+        var bicis = parada.bicisDisponibles;
+        var huecos = parada.anclajesDisponibles;
+        items.push({subtitle:dir, title:id, estado:state, bicis:bicis, huecos:huecos});
+    }
+    return items;
+};
+
 var ordenarLineas = function(array){
     // Orden para priorizar: Primero circulares, después numéricas, después lanzaderas. 
     // ¡IDEA! De noche, mostrar SOLO las nocturnas!
@@ -112,7 +128,11 @@ var ordenarLineas = function(array){
     return newArray;
 };
 
-
+var ordenarBizis = function(data){
+    data.sort(function(a, b) {return parseFloat(a.title) - parseFloat(b.title);});
+    console.log("Array ordenado");
+    return data;
+};
 // Función que ordena el array de tranvías
 var ordenarParadas = function(array,orden) {
     var posicion;
@@ -243,6 +263,34 @@ var showInfoTram = function(data,dir){
     return detailCard;
 };
 
+var showInfoBizi = function(data) {
+    var estado;
+    if (data.estado == "OPN") {estado = "Operativa";} else {estado = "Cerrada";}
+    var detailCard = new UI.Card({
+        title: "Poste " + data.title,
+        subtitle: estado,
+        body: data.subtitle + "\n  Nº Bicis: " + data.bicis + " \n  Anclajes libres: " + data.huecos,
+        style: "small",
+        scrollable: true,
+    });
+    console.log("Lista la tarjeta de informacion");
+    return detailCard;
+};
+
+var showInfoBizi2 = function(data) {
+        var estado;
+    if (data.estado == "OPN") {estado = "Operativa";} else {estado = "Cerrada";}
+    var detailCard = new UI.Card({
+        title: "Poste " + data.id,
+        subtitle: estado,
+        body: data.title + "\n  Nº Bicis: " + data.bicisDisponibles + " \n  Anclajes libres: " + data.anclajesDisponibles,
+        style: "small",
+        scrollable: true,
+    });
+    console.log("Lista la tarjeta de informacion");
+    return detailCard;
+};
+
 var loadVentanaFav = function(){
     console.log("Entra en loadVentanaFav");
     var ventana = new UI.Card({
@@ -334,6 +382,29 @@ var newTramFav = function(poste,title,direccion){
     }
 };
 
+var newBiziFav = function(poste,direccion){
+    var favBizi = localStorage.getItem("storedFavBizi");
+    console.log("Creando nuevo favorito.");
+    if(!favBizi){
+        favBizi = [];
+    } else {
+        favBizi = JSON.parse(favBizi);
+    }
+    var existe = false;
+    var i = 0;
+    while(i<favBizi.length){
+        if(favBizi[i].id == poste){
+            existe = true;
+        }
+        i++;
+    }
+    console.log("¿Existe ya el poste en el array?" + existe);
+    if(!existe){
+        favBizi.push({nombre: direccion, id: poste});
+        localStorage.setItem("storedFavBizi", JSON.stringify(favBizi));
+    }
+};
+
 var deleteTramFav = function(poste){
     var favTram = localStorage.getItem("storedFavTram");
     if(!favTram){
@@ -372,9 +443,31 @@ var deleteBusFav = function(poste){
     localStorage.setItem("storedFavBus",JSON.stringify(favBus));
 };
 
+var deleteBiziFav = function(poste){
+  var favBizi = localStorage.getItem("storedFavBizi");
+    if(!favBizi){
+        favBizi = [];
+    } else {
+        favBizi = JSON.parse(favBizi);
+        var i = 0;
+        console.log("Numero de postes:" + favBizi.length);
+        while(i<favBizi.length){
+            if(favBizi[i].id == poste){
+                //Ha encontrado el ID a quitar!
+                favBizi.splice(i,1);
+                console.log("Elemento hallado y quitado");
+            }
+        i++;
+        }
+        console.log("Numero actual de postes:" + favBizi.length);
+    }
+    localStorage.setItem("storedFavBizi",JSON.stringify(favBizi));  
+};
+
 var loadMenuFav = function(){
     var favTram = JSON.parse(localStorage.getItem("storedFavTram"));
     var favBus = JSON.parse(localStorage.getItem("storedFavBus"));
+    var favBizi = JSON.parse(localStorage.getItem("storedFavBizi"));
     var menuFav = [];
     var i;
     if(favTram){ //Se ha inicializado al menos una vez. ¡Pasemos al menu!
@@ -389,6 +482,14 @@ var loadMenuFav = function(){
             console.log("nombre: " + favBus[i].nombre);
             console.log("id: " + favBus[i].id);
             menuFav.push({title: favBus[i].nombre, subtitle: favBus[i].id, icon: "images/bus.png"});
+        }            
+    }
+    if(favBizi){ //Se ha inicializaco al menos una vez.
+        for(i=0;i<favBizi.length;i++){
+            console.log("cadena: " + favBizi[i]);
+            console.log("nombre: " + favBizi[i].nombre);
+            console.log("id: " + favBizi[i].id);
+            menuFav.push({title: favBizi[i].nombre, subtitle: favBizi[i].id, icon: "images/Star.png"});
         }            
     }
     // Hasta aqui, ha cargado en menuFav todas las opciones favoritas. Pero, ¿Hay favoritos?
@@ -414,6 +515,10 @@ var direccionesBuses = [
     //{title:"Por cercanía (150m)", subtitle: "Funcion no operativa por el momento", data: "CercaniaBus"}
 ];
 
+var direccionesBizis = [
+    {title:"Por poste", data: "ParadaBizi", icon:"images/tram.png"}
+];
+
 var menuInicio = new UI.Menu({
     sections: [{
         title: "Opciones",
@@ -424,6 +529,9 @@ var menuInicio = new UI.Menu({
     },{
         title: 'Urbanos de Zaragoza',
         items: direccionesBuses,
+    },{
+        title: 'BiziZaragoza',
+        items: direccionesBizis,
     }]
 });
 // localStorage.removeItem("storedFavBus");
@@ -728,6 +836,45 @@ menuInicio.on('select', function(event) {
                     });
                     
                 }
+                else if(menuFav[e2.itemIndex].icon=="images/Star.png"){
+                    console.log("Se ha pulsado en el favorito de un tranvia. Su ID es: " + menuFav[e2.itemIndex].subtitle);
+                    var URL3 = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/estacion-bicicleta/' + menuFav[e2.itemIndex].subtitle + '.json';
+                    ajax({url:URL3,type:'json'},function(dataPoste){
+                        var infoBiziCard = showInfoBizi2(dataPoste);
+                        infoBiziCard.show();
+                        infoBiziCard.on('longClick','select',function(e3){
+                            //Quiere borrar la parada...
+                            var deleteCard = loadDeleteFav();
+                            deleteCard.show();
+                            deleteCard.on('click','up', function(e4){
+                                console.log("Entra aqui");
+                                console.log("Parada a borrar: " + menuFav[e2.itemIndex].subtitle);
+                                deleteBiziFav(menuFav[e2.itemIndex].subtitle);
+                                deleteCard.hide();
+                                infoBiziCard.hide();
+                                infoBiziCard.hide();
+                                menuFav = loadMenuFav();
+                                if(menuFav.length !== 0){menuCard.items(0, menuFav);menuCard.show();}
+                                else {
+                                    menuCard.hide();menuCard.hide();
+                                    var noFavCard = new UI.Card({
+                                        title: "No tienes ningun favorito", 
+                                        body: "Agrega tu parada a favoritos manteniendo pulsado el botón central cuando estes viendo la información de ese poste o parada", 
+                                        scrollable: true, 
+                                        style: "small"
+                                    });
+                                    noFavCard.show();
+                                }
+                                deleteCard.hide();
+                            });
+                            deleteCard.on('click','down', function(e4){
+                                //No quiere borrar esta parada.
+                                deleteCard.hide(); //para ocultar
+                                deleteCard.hide(); //para eliminar
+                            });
+                        });
+                    });
+                }
             });
         } else {
             // NO HAY NINGUN FAVORITO GUARDADO.
@@ -736,4 +883,70 @@ menuInicio.on('select', function(event) {
         }
     }
     // HASTA AQUI, SI SE HA SELECCIONADO FAVORITOS.
+    // DESDE AQUI, SECCION 3 DEL ARRAY: BIZIS.
+    if (event.sectionIndex === 3){
+        // ¿Se ha seleccionado por poste?
+        if (event.itemIndex === 0){
+            // Pantalla de carga mientras se descargan las lineas.
+            var ventanaCargaBizi = new UI.Window();
+    
+            // Texto para avisar al usuario
+            var text3 = new UI.Text({
+              position: new Vector2(0, 0),
+              size: new Vector2(144, 168),
+              text:'Descargando paradas',
+              font:'GOTHIC_18_BOLD',
+              color:'black',
+              textOverflow:'wrap',
+              textAlign:'center',
+              backgroundColor:'white'
+            });
+            ventanaCargaBizi.add(text3);
+            ventanaCargaBizi.show();
+            ajax(
+              {
+                url: 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/estacion-bicicleta.json?rf=html&results_only=false&srsname=utm30n&rows=250' ,
+                type:'json'
+              }, 
+                function(data){
+                  // Crear un array con las paradas. La info esta en data.
+                var menuItems = lineasbizi(data);
+                    // Los muestra desordenados! Hay que ordenarlos.
+                menuItems = ordenarBizis(menuItems);
+                var menuBizi = new UI.Menu({
+                  sections: [{
+                    title: 'Lineas de Bizi',
+                    items: menuItems,
+                    }]    
+                });
+                menuBizi.show();
+                ventanaCargaBizi.hide();
+                //Muestra la info de manera ordenada (¡Ojo, un menu con 130 opciones!). Ahora, si selecciona una opcion...
+                menuBizi.on('select', function(event){
+                    //¿Qué opcion se ha indicado?
+                    console.log("Se ha pulsado la parada num " + event.itemIndex);
+                    console.log("Direccion: " + menuItems[event.itemIndex].subtitle + ";  Estado: " + menuItems[event.itemIndex].estado);
+                    var detalleBizi = showInfoBizi(menuItems[event.itemIndex]);
+                    detalleBizi.show();
+                    // Si mantienes el Select... ¡Favorito!
+                    detalleBizi.on('longClick','select', function(e){
+                               // Ha pulsado el botón del centro. FAV. 
+                                var ventanaFav = loadVentanaFav();
+                                ventanaFav.show();
+                                ventanaFav.on('click','up', function(e2){
+                                    //Quiere guardar esta parada.
+                                    newBiziFav(menuItems[event.itemIndex].title, menuItems[event.itemIndex].subtitle);
+                                    ventanaFav.hide();
+                                    ventanaFav.hide();
+                                });
+                                ventanaFav.on('click','down', function(e2){
+                                    //No quiere guardar esta parada.
+                                    ventanaFav.hide(); //para ocultar
+                                    ventanaFav.hide(); //para eliminar
+                                });
+                            });
+                });
+        });
+        }
+    }
 });

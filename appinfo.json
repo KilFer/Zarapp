@@ -76,11 +76,13 @@
             }
         ]
     },
+    "sdkVersion": "3",
     "shortName": "Zarapp",
     "uuid": "66c2fedf-3ee3-4c3d-bd2e-8ac20727954d",
     "versionCode": 1,
-    "versionLabel": "0.89",
+    "versionLabel": "0.92",
     "watchapp": {
+        "hiddenApp": false,
         "watchface": false
     }
 }
