@@ -1,4 +1,4 @@
-// Version 0.89
+// Version 0.94
 
 var UI = require('ui');
 var ajax = require('ajax');
@@ -489,7 +489,7 @@ var loadMenuFav = function(){
             console.log("cadena: " + favBizi[i]);
             console.log("nombre: " + favBizi[i].nombre);
             console.log("id: " + favBizi[i].id);
-            menuFav.push({title: favBizi[i].nombre, subtitle: favBizi[i].id, icon: "images/Star.png"});
+            menuFav.push({title: favBizi[i].nombre, subtitle: favBizi[i].id, icon: "images/bici.png"});
         }            
     }
     // Hasta aqui, ha cargado en menuFav todas las opciones favoritas. Pero, ¿Hay favoritos?
@@ -516,7 +516,7 @@ var direccionesBuses = [
 ];
 
 var direccionesBizis = [
-    {title:"Por poste", data: "ParadaBizi", icon:"images/tram.png"}
+    {title:"Por poste", data: "ParadaBizi", icon:"images/bici.png"}
 ];
 
 var menuInicio = new UI.Menu({
@@ -836,7 +836,7 @@ menuInicio.on('select', function(event) {
                     });
                     
                 }
-                else if(menuFav[e2.itemIndex].icon=="images/Star.png"){
+                else if(menuFav[e2.itemIndex].icon=="images/bizi.png"){
                     console.log("Se ha pulsado en el favorito de un tranvia. Su ID es: " + menuFav[e2.itemIndex].subtitle);
                     var URL3 = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/estacion-bicicleta/' + menuFav[e2.itemIndex].subtitle + '.json';
                     ajax({url:URL3,type:'json'},function(dataPoste){

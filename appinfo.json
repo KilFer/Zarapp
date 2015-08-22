@@ -29,6 +29,11 @@
                 "type": "font"
             },
             {
+                "file": "images/bici.png",
+                "name": "IMAGES_BICI_PNG",
+                "type": "png"
+            },
+            {
                 "file": "images/x.png",
                 "name": "IMAGES_X_PNG",
                 "type": "png"
