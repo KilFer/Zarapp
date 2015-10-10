@@ -4,7 +4,73 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Vector2 = require('vector2');
 var sentidoLinea;
+var latitude = 0; var longitude = 0;
 
+// Funciones de geolocalizacion
+var showPosition = function(position){
+	console.log("Geolocation SUCCESS");
+	
+	latitude = position.coords.latitude;
+	longitude = position.coords.longitude;
+    
+    console.log("Latitude:" + latitude);
+    console.log("Longitude:" + longitude);
+};
+ 
+var geoFail = function(){
+	console.log("Geolocation FAILED");
+};
+ 
+var getLocation = function(){
+	if(navigator && navigator.geolocation){
+		navigator.geolocation.getCurrentPosition(showPosition, geoFail, {maximumAge:60000, timeout:5000, enableHighAccuracy:true});
+	}
+};
+
+var distanciaEntrePuntos = function(lat1, lon1, lat2, lon2) {
+  var p = 0.017453292519943295;    // Math.PI / 180
+  var c = Math.cos;
+  var a = 0.5 - c((lat2 - lat1) * p)/2 + 
+          c(lat1 * p) * c(lat2 * p) * 
+          (1 - c((lon2 - lon1) * p))/2;
+
+  return 12742 * Math.asin(Math.sqrt(a)) * 1000; // 2 * R; R = 6371 km . Como da el resultado en km, * 1000 para metros.
+};
+
+var direccionDeParada = function(lat1,lon1,lat2,lon2){
+    //La 1 es la parada. La 2, donde estoy yo. 
+    //¿Como sabemos si nos movemos en NOSE o en NW-SW-NE-SE? 
+    //Si la diferencia entre latitudes por dos es menor que la de longitudes; o al revés, estamos en NOSE.
+    var latdif = lat1 - lat2;
+    var londif = lon1 - lon2;
+    
+    if(latdif*2 < londif || londif*2 < latdif){
+        //Está en uno de los puntos cardinales.
+        if(Math.abs(latdif) < Math.abs(londif)){
+            //La que destaca es la longitud. ¿Signo?
+            if(londif < 0) {
+                //Longitud negativa... Oeste.
+                return 'W';
+            } else {
+                return 'E';
+            }
+        } else {
+            if(latdif < 0) {
+                //Longitud negativa... Sur.
+                return 'S';
+            } else {
+                return 'N';
+            }
+        }
+    } else {
+        // NO esta en las coordenadas simples. Está en las complejas... Signos de Latdif y Londif.
+        if(latdif < 0 && londif < 0){ return 'SW';}
+        if(latdif < 0 && londif > 0){ return 'SE';}
+        if(latdif > 0 && londif > 0){ return 'NE';}
+        if(latdif > 0 && londif < 0){ return 'NW';}
+    }
+    
+};
 // Función que obtiene las lineas de autobús
 
 var lineastram = function(data){
@@ -65,6 +131,48 @@ var lineasbizi = function(data){
         items.push({subtitle:dir, title:id, estado:state, bicis:bicis, huecos:huecos});
     }
     return items;
+};
+
+var geoparadasBus = function(data){
+    var items = [];
+    console.log("Comienza a analizar las paradas");
+    for(var i=0;i < data.totalCount; i++){
+        var parada = data.result[i];
+        var id = parada.id;
+        console.log("Parada encontrada: " + id);
+        var dir = parada.title;
+        var lon = parada.geometry.coordinates[0];
+        var lat = parada.geometry.coordinates[1];
+        var distancia = distanciaEntrePuntos(lat,lon,latitude,longitude);
+        //¿En que dirección esta la parada?
+        var direccion = direccionDeParada(lat,lon,latitude,longitude);
+        items.push({title:dir, id:id, subtitle:Math.round(distancia) + 'm ' + direccion, dist:distancia, dir:direccion});
+    }
+    return items;
+};
+
+var geoOrdenarParadas = function(array) {
+    var posicion;
+    var j = 0;
+    var dir = 0;
+    var actual = [];
+    var i;
+    // Ordenar de manera ascendente (1 es el primero, 25 el último)
+    while (j < array.length-1) { //Mientras J sea menor que el ArrayLength, queda recorrido por hacer.
+        for (i = (array.length-1 -j); i >= 0; i--) { // Un recorrido completo para quedarse con el mas pequeño de todos.
+            if(dir > Number(array[i].dist)) {
+                dir = Number(array[i].dist); // en Poste, el número de poste que se ha quedado
+                posicion = i; //en posición, la posición del Array.
+            }
+        }
+        //Se ha llegado al final completo. Sustituir el de posicion por el ultimo...
+        actual = array[posicion];
+        array[posicion] = array[(array.length-1) - j]; //Ha de tratar el último... sin tocar los ya tocados. J.
+        array[(array.length-1) - j] = actual;
+        j++;
+        dir = 0;
+    }
+    return array;
 };
 
 var ordenarLineas = function(array){
@@ -497,6 +605,10 @@ var loadMenuFav = function(){
     return menuFav;
 };
 
+// Funciones de geolocalización
+
+
+
 /* ================================================
 ======       EMPIEZA EL PROGRAMA EN SI       ======
 ================================================= */
@@ -512,7 +624,7 @@ var direccionesTranvia = [
 
 var direccionesBuses = [
     {title:"Por línea", data: "LineaBus", icon:"images/bus.png"},
-    //{title:"Por cercanía (150m)", subtitle: "Funcion no operativa por el momento", data: "CercaniaBus"}
+    {title:"Por cercanía", subtitle: "Hasta 500m. En pruebas", data: "CercaniaBus"}
 ];
 
 var direccionesBizis = [
@@ -536,6 +648,8 @@ var menuInicio = new UI.Menu({
 });
 // localStorage.removeItem("storedFavBus");
 // localStorage.removeItem("storedFavTram");
+
+getLocation(); //Para irse adelantando a todo.
 menuInicio.show();
 
 // Ha seleccionado una opción. ¿Que hacer?
@@ -745,6 +859,140 @@ menuInicio.on('select', function(event) {
         }
         //¿Se ha seleccionado por cercanía?
         if (event.itemIndex === 1) {
+            //Pantalla de carga.
+            // Pantalla de carga mientras se descargan las lineas.
+            var loadingWindow = new UI.Window();
+    
+            // Texto para avisar al usuario
+            var loadingText = new UI.Text({
+              position: new Vector2(0, 0),
+              size: new Vector2(144, 168),
+              text:'Comprobando localizacion',
+              font:'GOTHIC_18_BOLD',
+              color:'black',
+              textOverflow:'wrap',
+              textAlign:'center',
+              backgroundColor:'white'
+            });
+            loadingWindow.add(loadingText);
+            loadingWindow.show();
+            //Es necesario saber en que posicion estamos.
+            //¿Ha funcionado?
+            if(Number(latitude) === 0 && Number(longitude) === 0){
+                // No ha funcionado. Volver a geolocalizar.
+              getLocation();
+              var errorText = new UI.Text({
+              position: new Vector2(0, 0),
+              size: new Vector2(144, 168),
+              text:'No se ha podido localizar. \n Pulse atras para continuar',
+              font:'GOTHIC_18_BOLD',
+              color:'black',
+              textOverflow:'wrap',
+              textAlign:'center',
+              backgroundColor:'white'
+            });
+            loadingWindow.add(errorText);
+            } else {
+                //¡Si ha funcionado! ¡Tenemos una longitud y latitud!
+              ajax(
+              {
+                url: 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/poste.json?rf=html&results_only=false&srsname=wgs84&point=' + longitude + '%2C' + latitude + '%20%09&distance=500' ,
+                type:'json'
+              }, function (data){
+                  //Creamos un array con las paradas y las distancias a ellas.
+                  var menuItems = geoparadasBus(data);
+                  //Y las ordenamos por distancia.
+                  menuItems = geoOrdenarParadas(menuItems);
+                  var menuBus = new UI.Menu({
+                      sections: [{
+                        title: 'Lineas de Bus',
+                        items: menuItems,
+                      }]
+                  });
+                  // Se muestra el menú y se esconde la ventana de carga
+                menuBus.show();
+                loadingWindow.hide();
+                loadingWindow.hide(); //Para borrarlo de memoria.
+                  
+                  
+                  // TO-DO: ¿Reaccion al pulsar?     
+                menuBus.on('select', function(event3) {
+                    //Ventanita de cargando parada...
+                    var loadingStop = new UI.Window();
+    
+                    // Texto para avisar al usuario
+                    var loadingStopText = new UI.Text({
+                      position: new Vector2(0, 0),
+                      size: new Vector2(144, 168),
+                      text:'Cargando parada...',
+                      font:'GOTHIC_18_BOLD',
+                      color:'black',
+                      textOverflow:'wrap',
+                      textAlign:'center',
+                      backgroundColor:'white'
+                    });
+                    loadingStop.add(loadingStopText);
+                    loadingStop.show();
+                    
+                    var poste = menuItems[event3.itemIndex].id;
+                    console.log("Parada seleccionada: " + event3.itemIndex);
+                    console.log("ID de la parada: " + poste);
+                    console.log("Nombre de la parada: " + menuItems[event3.itemIndex].title);
+                    if(poste.indexOf('t') === 0){
+                        console.log("ID de la parada: " + poste);
+                    var URLPoste = 'http://www.zaragoza.es/api/recurso/urbanismo-infraestructuras/transporte-urbano/poste/' + poste + '.json';
+                    console.log("URL del Poste: " + URLPoste);
+                    ajax({url:URLPoste,type:'json'},function(dataPoste){
+                        var posteCard = showInfoBus(dataPoste);
+                        posteCard.show();
+                        loadingStop.hide();
+                        loadingStop.hide();
+                        posteCard.on('longClick','select', function(e){
+                            // Ha pulsado el botón del centro. FAV. 
+                            var ventanaFav = loadVentanaFav();
+                            ventanaFav.show();
+                            ventanaFav.on('click','up', function(e2){
+                                //Quiere guardar esta parada.
+                                newBusFav(poste,menuItems[event3.itemIndex].title);
+                                ventanaFav.hide();
+                                ventanaFav.hide();
+                            });
+                            ventanaFav.on('click','down', function(e2){
+                                //No quiere guardar esta parada.
+                                ventanaFav.hide(); //para ocultar
+                                ventanaFav.hide(); //para eliminar
+                            });
+                        });
+                    });
+                    } else {
+                    var ruralError = new UI.Window();
+    
+                    // Texto para avisar al usuario
+                    var ruralErrorText = new UI.Text({
+                      position: new Vector2(0, 0),
+                      size: new Vector2(144, 168),
+                      text:'Parada de bus interurbano. \n Imposible de obtener información.',
+                      font:'GOTHIC_18_BOLD',
+                      color:'black',
+                      textOverflow:'wrap',
+                      textAlign:'center',
+                      backgroundColor:'white'
+                    });
+                    ruralError.add(ruralErrorText);
+                    ruralError.show();
+                        
+                        
+                        
+                    }
+                });
+                  
+                  
+                  
+              } , function(error) {
+                  console.log('Download failed: ' + error);
+              }
+            );
+
             
         }
     }
@@ -949,4 +1197,4 @@ menuInicio.on('select', function(event) {
         });
         }
     }
-});
+    }});
